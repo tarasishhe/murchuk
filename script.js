@@ -1,28 +1,25 @@
-/* Сірий Мурчик — scroll-driven canvas hero.
-   Scroll progress through .scroll-hero picks a pre-extracted JPG frame and
-   draws it onto a canvas. No <video> seeking is involved, so it behaves the
-   same on iOS Safari as on desktop. */
+/* Сірий Мурчик — scroll-driven canvas inside the hero arch.
+   Scroll position picks one of the pre-extracted JPG frames and draws it onto
+   the canvas. No <video> seeking is involved, so iOS Safari behaves the same
+   as desktop. */
 (function () {
   'use strict';
 
   var FRAME_COUNT = 97;
   var framePath = function (i) {
-    // frames/frame_001.jpg ... frames/frame_097.jpg
-    return 'frames/frame_' + String(i + 1).padStart(3, '0') + '.jpg';
+    // frames/f001.jpg ... frames/f097.jpg
+    return 'frames/f' + String(i + 1).padStart(3, '0') + '.jpg';
   };
-  // Horizontal focal point of the source video, used when "cover" cropping so
-  // narrow phone screens keep the cat in view instead of the middle of the
-  // room. The cat sits left of centre and turns further left by the last
-  // frame, so the focus drifts from FOCAL_X_START to FOCAL_X_END.
+  // Horizontal focal point used when "cover" cropping the landscape video into
+  // the portrait arch. The cat sits left of centre and turns further left by
+  // the last frame, so the focus drifts from FOCAL_X_START to FOCAL_X_END.
   var FOCAL_X_START = 0.43;
   var FOCAL_X_END = 0.37;
   var FOCAL_Y = 0.5;
 
-  var hero = document.querySelector('.scroll-hero');
-  var canvas = document.querySelector('.hero-canvas');
+  var arch = document.querySelector('.arch');
+  var canvas = document.querySelector('.arch-canvas');
   var ctx = canvas.getContext('2d');
-  var blocks = Array.prototype.slice.call(document.querySelectorAll('.block'));
-  var hint = document.querySelector('.scroll-hint');
 
   var frames = new Array(FRAME_COUNT);
   var loaded = new Array(FRAME_COUNT).fill(false);
@@ -30,6 +27,7 @@
   var currentFrame = -1; // frame index actually on the canvas
   var targetFrame = 0;   // frame index wanted by the scroll position
   var ticking = false;
+  var forceNext = false;
 
   // Exposed for automated checks (headless test reads these).
   window.__hero = {
@@ -60,7 +58,7 @@
     });
   }
 
-  // First frame first, so the hero is never blank; then the rest in order.
+  // First frame first (the arch is never blank), then the rest.
   loadFrame(0).then(function () {
     for (var i = 1; i < FRAME_COUNT; i++) loadFrame(i);
   });
@@ -108,10 +106,9 @@
     ctx.drawImage(img, dx, dy, dw, dh);
   }
 
-  var forceNext = false;
-
   function render() {
     ticking = false;
+    if (!cssW || !cssH) return;
     var i = nearestLoaded(targetFrame);
     if (i === -1) return;
     if (i === currentFrame && !forceNext) return;
@@ -129,25 +126,22 @@
     }
   }
 
-  /* ----- Scroll -> progress -> frame + overlay ------------------------ */
+  /* ----- Scroll -> progress -> frame ---------------------------------- */
 
+  // Progress runs from 0 (arch starts entering the viewport, or page top if
+  // it is already visible) to 1 (arch bottom leaves the top of the viewport).
   function progress() {
-    var rect = hero.getBoundingClientRect();
-    var distance = hero.offsetHeight - window.innerHeight;
-    return distance > 0 ? clamp(-rect.top / distance, 0, 1) : 0;
+    var rect = arch.getBoundingClientRect();
+    var scrollY = window.scrollY || window.pageYOffset;
+    var top = rect.top + scrollY;
+    var start = Math.max(0, top - window.innerHeight);
+    var end = top + rect.height;
+    return end > start ? clamp((scrollY - start) / (end - start), 0, 1) : 0;
   }
 
   function onScroll() {
-    var p = progress();
-    targetFrame = Math.round(p * (FRAME_COUNT - 1));
+    targetFrame = Math.round(progress() * (FRAME_COUNT - 1));
     requestDraw(false);
-
-    for (var b = 0; b < blocks.length; b++) {
-      var el = blocks[b];
-      var on = p >= parseFloat(el.dataset.from) && p < parseFloat(el.dataset.to);
-      el.classList.toggle('is-visible', on);
-    }
-    hint.classList.toggle('is-hidden', p > 0.02);
   }
 
   function clamp(v, min, max) {
@@ -161,7 +155,6 @@
     setTimeout(function () { resizeCanvas(); onScroll(); }, 150);
   });
   if ('ResizeObserver' in window) {
-    // Catches the dvh-driven stage size change when the iOS toolbar collapses.
     new ResizeObserver(resizeCanvas).observe(canvas);
   }
 
@@ -192,5 +185,16 @@
   // Close the overlay if the screen is widened past the mobile breakpoint.
   window.matchMedia('(min-width: 640px)').addEventListener('change', function (e) {
     if (e.matches && !menu.hidden) setMenu(false);
+  });
+
+  /* ----- Cart counter (demo only) ------------------------------------- */
+
+  var cartCount = document.querySelector('.cart-count');
+  var items = 0;
+  document.querySelectorAll('.btn-cart').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      items++;
+      cartCount.textContent = String(items);
+    });
   });
 })();
