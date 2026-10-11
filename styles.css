@@ -1,0 +1,369 @@
+/* ==========================================================================
+   Сірий Мурчик — scroll-driven hero landing page
+   ========================================================================== */
+
+:root {
+  --cream: #f4efe6;
+  --cream-dim: rgba(244, 239, 230, 0.82);
+  --gold: #d9b777;
+  --gold-hover: #e6c88d;
+  --green-deep: #14201a;
+  --green-shade: 20, 32, 26; /* rgb parts for overlays */
+  --ink: #1d1a14;
+  --gutter: clamp(16px, 4vw, 64px);
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--green-deep);
+  color: var(--cream);
+  font-family: var(--sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip; /* belt and braces: never allow sideways scroll */
+}
+
+a { color: inherit; }
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--gold);
+  color: var(--ink);
+  border-radius: 999px;
+}
+.skip-link:focus { top: 12px; }
+
+/* ----- Header ----------------------------------------------------------- */
+
+.site-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: max(16px, env(safe-area-inset-top)) var(--gutter) 16px;
+}
+
+.logo {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  gap: clamp(18px, 2.4vw, 36px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--cream-dim);
+  transition: color 0.2s;
+}
+.nav-links a:hover,
+.nav-links a:focus-visible { color: var(--gold); }
+
+.menu-toggle {
+  display: none;
+  font: 500 14px/1 var(--sans);
+  color: var(--cream);
+  background: rgba(var(--green-shade), 0.35);
+  border: 1px solid rgba(244, 239, 230, 0.35);
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ----- Mobile menu overlay ---------------------------------------------- */
+
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--green-shade), 0.96);
+}
+.mobile-menu[hidden] { display: none; }
+.mobile-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+.mobile-menu li + li { margin-top: 20px; }
+.mobile-menu a {
+  font-family: var(--serif);
+  font-size: 40px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.mobile-menu a:hover,
+.mobile-menu a:focus-visible { color: var(--gold); }
+.menu-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--cream);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ----- Scroll hero ------------------------------------------------------ */
+
+.scroll-hero {
+  position: relative;
+  height: 400vh; /* scroll distance = 300vh of scrubbing */
+}
+
+/* Anchors sit at the scroll position matching a given progress (--p) */
+.anchor {
+  position: absolute;
+  left: 0;
+  top: calc(var(--p) * 300vh);
+  width: 1px;
+  height: 1px;
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh; /* follows the iOS toolbar so content never hides under it */
+  overflow: hidden;
+}
+
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #2a2a20;
+}
+
+/* Readability gradients: dark green at the bottom and left, light vignette top */
+.shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(var(--green-shade), 0.55) 0%, rgba(var(--green-shade), 0) 18%),
+    linear-gradient(to top, rgba(var(--green-shade), 0.92) 0%, rgba(var(--green-shade), 0.55) 30%, rgba(var(--green-shade), 0) 55%),
+    linear-gradient(to right, rgba(var(--green-shade), 0.55) 0%, rgba(var(--green-shade), 0) 45%);
+}
+
+/* ----- Overlay blocks --------------------------------------------------- */
+
+/* All text blocks sit in the lower-left so the cat's face stays clear */
+.block {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(clamp(40px, 9vh, 96px) + env(safe-area-inset-bottom));
+  width: min(560px, calc(100% - 2 * var(--gutter)));
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.6s var(--ease),
+    visibility 0s linear 0.6s;
+}
+.block.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.6s var(--ease),
+    visibility 0s;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+h1 { font-size: clamp(52px, 8.5vw, 112px); }
+h2 { font-size: clamp(36px, 4.6vw, 64px); }
+
+.lead,
+.block p:not(.eyebrow) {
+  margin: 16px 0 0;
+  max-width: 34em;
+  font-size: clamp(16px, 1.25vw, 18px);
+  color: var(--cream-dim);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 15px 28px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: background 0.2s, transform 0.2s;
+}
+.btn:hover,
+.btn:focus-visible { background: var(--gold-hover); transform: translateY(-1px); }
+
+/* Side stats: right edge, desktop only */
+.stats {
+  left: auto;
+  right: var(--gutter);
+  top: 50%;
+  bottom: auto;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: right;
+  transform: translate(24px, -50%);
+}
+.stats.is-visible { transform: translate(0, -50%); }
+.stats li {
+  padding: 16px 0 16px 24px;
+  border-bottom: 1px solid rgba(217, 183, 119, 0.35);
+}
+.stats li:last-child { border-bottom: 0; }
+.stats strong {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+.stats span {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--cream);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* Scroll hint, fades out once scrolling starts */
+.scroll-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  text-align: center;
+  transition: opacity 0.4s;
+}
+.scroll-hint .arrow {
+  display: block;
+  width: 1px;
+  height: 28px;
+  margin: 10px auto 0;
+  background: linear-gradient(var(--cream), transparent);
+  animation: hint 1.8s ease-in-out infinite;
+}
+.scroll-hint.is-hidden { opacity: 0; }
+
+@keyframes hint {
+  0%, 100% { transform: scaleY(0.4); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+}
+
+/* ----- Contacts (after the hero) --------------------------------------- */
+
+.contacts {
+  padding: 72px var(--gutter) calc(48px + env(safe-area-inset-bottom));
+  background: var(--green-deep);
+  border-top: 1px solid rgba(217, 183, 119, 0.25);
+}
+.contacts h2 { font-size: clamp(32px, 4vw, 48px); }
+.contacts p { color: var(--cream-dim); margin: 16px 0 0; }
+.contacts a { color: var(--gold); text-decoration: none; }
+.contacts .small { font-size: 13px; opacity: 0.7; }
+
+/* ----- Mobile ----------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+  .stats { display: none; }
+}
+
+@media (max-width: 639px) {
+  :root { --gutter: 16px; }
+  .nav-links { display: none; }
+  .menu-toggle { display: inline-block; }
+  .logo { font-size: 13px; }
+  .block { bottom: calc(56px + env(safe-area-inset-bottom)); }
+  .shade {
+    background:
+      linear-gradient(to bottom, rgba(var(--green-shade), 0.6) 0%, rgba(var(--green-shade), 0) 16%),
+      linear-gradient(to top, rgba(var(--green-shade), 0.95) 0%, rgba(var(--green-shade), 0.7) 32%, rgba(var(--green-shade), 0) 52%);
+  }
+}
+
+/* ----- Reduced motion: scrubbing stays, decorative motion goes --------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .block,
+  .block.is-visible,
+  .scroll-hint,
+  .btn { transition: none; }
+  .block,
+  .stats { transform: none; }
+  .stats,
+  .stats.is-visible { transform: translateY(-50%); }
+  .scroll-hint .arrow { animation: none; }
+}
